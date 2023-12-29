@@ -1,15 +1,16 @@
-from rq import get_current_job
-from app.models import Task
-from app import create_app, db
-from app.models import User, Post
-from flask import render_template
-from app.email import send_email
+import json
 import sys
 import time
-import json
+import sqlalchemy as sa
+from flask import render_template
+from rq import get_current_job
+from app import create_app, db
+from app.models import User, Post, Task
+from app.email import send_email
 
 app = create_app()
 app.app_context().push()
+
 
 def _set_task_progress(progress):
     job = get_current_job()
@@ -22,6 +23,7 @@ def _set_task_progress(progress):
         if progress >= 100:
             task.complete = True
         db.session.commit()
+
 
 def export_posts(user_id):
     try:
@@ -47,7 +49,6 @@ def export_posts(user_id):
             attachments=[('posts.json', 'application/json',
                           json.dumps({'posts': data}, indent=4))],
             sync=True)
-
     except Exception:
         _set_task_progress(100)
         app.logger.error('Unhandled exception', exc_info=sys.exc_info())
