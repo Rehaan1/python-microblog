@@ -1,6 +1,4 @@
-import logging
 from logging.handlers import SMTPHandler, RotatingFileHandler
-import os
 from flask import Flask, request, current_app
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -10,7 +8,10 @@ from flask_moment import Moment
 from flask_babel import Babel, lazy_gettext as _l
 from config import Config
 from elasticsearch import Elasticsearch
-
+from redis import Redis
+import rq
+import logging
+import os
 
 def get_locale():
     return request.accept_languages.best_match(current_app.config['LANGUAGES'])
@@ -39,6 +40,8 @@ def create_app(config_class=Config):
 
     app.elasticsearch = Elasticsearch([app.config['ELASTICSEARCH_URL']]) \
         if app.config['ELASTICSEARCH_URL'] else None
+    app.redis = Redis.from_url(app.config['REDIS_URL'])
+    app.task_queue = rq.Queue('microblog-tasks', connection=app.redis)
 
     from app.errors import bp as errors_bp
     app.register_blueprint(errors_bp)
